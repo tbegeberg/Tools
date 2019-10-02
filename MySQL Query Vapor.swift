@@ -34,6 +34,8 @@ private func getTableMedInfo(req: Request, itemNumber: Int) throws -> Future<Tab
         return query
     }
     
+    
+    
     return simpleQuery.flatMap { (mySQLArrayFuture) -> Future<TableMedInfo?> in
         return mySQLArrayFuture.map({ (mySQLArray) -> (TableMedInfo?) in
             guard let firstData = mySQLArray.first else {
