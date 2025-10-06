@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Prepare-commit-msg: generate/overwrite message from staged diff via OpenAI
+set -euo pipefail
+
+MSG_FILE="$1"
+COMMIT_SOURCE="${2:-}"  # may be: message, merge, squash, tag, etc.
+
+# --- Skips (keep these minimal) ---
+# Allow opt-out and skip merge/squash/tag messages.
+if [[ "${GIT_NO_AI:-}" == "1" ]] || [[ "$COMMIT_SOURCE" =~ ^(merge|squash|tag)$ ]]; then
+  echo "Message already exists"
+  exit 0
+fi
+
+# --- API key check ---
+if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+  echo "[ai-commit] Missing OPENAI_API_KEY; skipping." >> /tmp/ai-prepare.log
+  exit 0
+fi
+
+# --- Diff (staged only) ---
+DIFF=$(git diff --staged --no-color | sed -e 's/\t/  /g') || DIFF=""
+if [[ -z "$DIFF" ]]; then
+  echo "[ai-commit] Nothing staged; skipping." >> /tmp/ai-prepare.log
+  exit 0
+fi
+
+# Clamp size
+MAX=40000
+if ((${#DIFF} > MAX)); then
+  DIFF="${DIFF:0:MAX}
+
+[...diff truncated to ${MAX} chars...]"
+fi
+
+json_escape() {
+  if command -v jq >/dev/null 2>&1; then
+    jq -Rs .    # reads stdin, writes a quoted JSON string
+  else
+    /usr/bin/python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'
+  fi
+}
+
+MODEL="${OPENAI_MODEL:-gpt-4o-mini}"
+
+INSTRUCTIONS='You are a senior engineer generating excellent Git commit messages.
+Rules:
+- Use Conventional Commits (feat|fix|docs|refactor|test|chore|perf|build|ci|style).
+- One concise subject line (<= 72 chars). No trailing period.
+- Optional short body: bullets with imperative mood; mention BREAKING CHANGE if any.
+- Use a meaningful scope if clear (e.g., ui, api, ci).
+Return plain text ready for COMMIT_EDITMSG.'
+ESC_INSTR=$(printf '%s' "$INSTRUCTIONS" | json_escape)
+
+USER_PROMPT=$(printf 'Generate a commit message for the following staged diff:\n\n```diff\n%s\n```' "$DIFF")
+ESC_USER=$(printf '%s' "$USER_PROMPT" | json_escape)
+
+PAYLOAD=$(cat <<EOF
+{
+  "model": "$MODEL",
+  "input": [
+    { "role": "system", "content": $ESC_INSTR },
+    { "role": "user",   "content": $ESC_USER }
+  ]
+}
+EOF
+)
+
+RESP=$(curl -sS https://api.openai.com/v1/responses \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "$PAYLOAD" || true)
+
+# Prefer jq if available
+if command -v jq >/dev/null 2>&1; then
+  MSG=$(printf '%s' "$RESP" | jq -r '.. | .content? // empty | .[]? | select(.type=="output_text") | .text' | sed '/^[[:space:]]*$/q')
+else
+  MSG=$(printf '%s' "$RESP" | sed -n 's/.*"output_text":"\([^"]*\)".*/\1/p' | head -n 1 | python - <<'PY' 2>/dev/null || true
+import sys,json
+s=sys.stdin.read()
+print(json.loads('"'+s.replace('\\','\\\\').replace('"','\\"')+'"'))
+PY
+)
+fi
+
+MSG=$(printf '%s\n' "$MSG" \
+  | sed -E 's/^```[[:alnum:]]*//; s/^```$//; s/```$//' \
+  | sed '/^```$/d' \
+  | sed '/^[[:space:]]*$/d')
+
+if [[ -z "${MSG:-}" ]]; then
+  echo "[ai-commit] Empty response; writing fallback." >> /tmp/ai-prepare.log
+  MSG="chore: update code"
+fi
+
+# Write the message (OVERWRITE even if template exists)
+printf '%s\n' "$MSG" > "$MSG_FILE"
