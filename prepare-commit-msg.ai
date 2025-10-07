@@ -14,14 +14,14 @@ fi
 
 # --- API key check ---
 if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-  echo "[ai-commit] Missing OPENAI_API_KEY; skipping." >> /tmp/ai-prepare.log
+  echo "[ai-commit] Missing OPENAI_API_KEY; skipping."
   exit 0
 fi
 
 # --- Diff (staged only) ---
 DIFF=$(git diff --staged --no-color | sed -e 's/\t/  /g') || DIFF=""
 if [[ -z "$DIFF" ]]; then
-  echo "[ai-commit] Nothing staged; skipping." >> /tmp/ai-prepare.log
+  echo "[ai-commit] Nothing staged; skipping." 
   exit 0
 fi
 
@@ -89,7 +89,7 @@ MSG=$(printf '%s\n' "$MSG" \
   | sed '/^[[:space:]]*$/d')
 
 if [[ -z "${MSG:-}" ]]; then
-  echo "[ai-commit] Empty response; writing fallback." >> /tmp/ai-prepare.log
+  echo "[ai-commit] Empty response; writing fallback." 
   MSG="chore: update code"
 fi
 
