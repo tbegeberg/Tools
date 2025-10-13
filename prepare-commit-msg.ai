@@ -8,7 +8,7 @@ COMMIT_SOURCE="${2:-}"  # may be: message, merge, squash, tag, etc.
 # --- Skips (keep these minimal) ---
 # Allow opt-out and skip merge/squash/tag messages.
 if [[ "${GIT_NO_AI:-}" == "1" ]] || [[ "$COMMIT_SOURCE" =~ ^(merge|squash|tag)$ ]]; then
-  echo "Message already exists"
+  echo "[ai-commit] Message already exists"
   exit 0
 fi
 
@@ -83,15 +83,23 @@ PY
 )
 fi
 
+# Clean up message (as before)
 MSG=$(printf '%s\n' "$MSG" \
   | sed -E 's/^```[[:alnum:]]*//; s/^```$//; s/```$//' \
   | sed '/^```$/d' \
   | sed '/^[[:space:]]*$/d')
 
-if [[ -z "${MSG:-}" ]]; then
-  echo "[ai-commit] Empty response; writing fallback." 
-  MSG="chore: update code"
+# Get current branch
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+# If branch matches something like live/vp-740-...
+if [[ "$branch" =~ ^([^/]+)/([a-z]+)-([0-9]+) ]]; then
+  prefix="[${BASH_REMATCH[1]}/${BASH_REMATCH[2]^^}-${BASH_REMATCH[3]}]"
+  # Prepend prefix to the commit message if not already there
+  if [[ "$MSG" != "$prefix"* ]]; then
+    MSG="$prefix $MSG"
+  fi
 fi
 
-# Write the message (OVERWRITE even if template exists)
+# Write final message
 printf '%s\n' "$MSG" > "$MSG_FILE"
