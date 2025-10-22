@@ -5,6 +5,14 @@ set -euo pipefail
 MSG_FILE="$1"
 COMMIT_SOURCE="${2:-}"  # may be: message, merge, squash, tag, etc.
 
+# Skip during rebase or cherry-pick
+if [ -d "$(git rev-parse --git-path rebase-merge 2>/dev/null)" ] \
+   || [ -d "$(git rev-parse --git-path rebase-apply 2>/dev/null)" ] \
+   || [ -f "$(git rev-parse --git-path MERGE_HEAD 2>/dev/null)" ]; then
+  echo "[ai-commit] Skipping during rebase/merge/cherry-pick."
+  exit 0
+fi
+
 # --- Skips (keep these minimal) ---
 # Allow opt-out and skip merge/squash/tag messages.
 if [[ "${GIT_NO_AI:-}" == "1" ]] || [[ "$COMMIT_SOURCE" =~ ^(merge|squash|tag)$ ]]; then
