@@ -15,7 +15,7 @@ fi
 
 # --- Skips (keep these minimal) ---
 # Allow opt-out and skip merge/squash/tag messages.
-if [[ "${GIT_NO_AI:-}" == "1" ]] || [[ "$COMMIT_SOURCE" =~ ^(merge|squash|tag)$ ]]; then
+if [[ "${GIT_NO_AI:-}" == "1" ]] || [[ "$COMMIT_SOURCE" =~ ^(message|merge|squash|tag)$ ]]; then
   echo "[ai-commit] Message already exists"
   exit 0
 fi
