@@ -16,6 +16,11 @@
       "url": "http://127.0.0.1:3845/mcp",
       "oauth": false,
       "enabled": true 
+    },
+    "knowledge": {
+      "type": "local",
+      "command": ["/Users/torkegeberg/Documents/Knowledge/Knowledge/mcp-knowledge/run.sh"],
+      "enabled": true
     }
   },
   "permission": {
