@@ -21,6 +21,11 @@
       "type": "local",
       "command": ["/Users/torkegeberg/Documents/Knowledge/Knowledge/mcp-knowledge/run.sh"],
       "enabled": true
+    },
+    "dnd": {
+      "type": "local",
+      "command": ["/Users/torkegeberg/Documents/DndMCP/.venv/bin/python", "/Users/torkegeberg/Documents/DndMCP/server.py"],
+      "enabled": true
     }
   },
   "permission": {
