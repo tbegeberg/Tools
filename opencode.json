@@ -15,18 +15,26 @@
       "type": "remote",
       "url": "http://127.0.0.1:3845/mcp",
       "oauth": false,
-      "enabled": true 
+      "enabled": false 
     },
     "knowledge": {
       "type": "local",
       "command": ["/Users/torkegeberg/Documents/Knowledge/Knowledge/mcp-knowledge/run.sh"],
-      "enabled": true
+      "enabled": false
+    },
+    "notion": {
+      "type": "remote",
+      "url": "https://mcp.notion.com/mcp",
+      "enabled": false
     },
     "dnd": {
       "type": "local",
       "command": ["/Users/torkegeberg/Documents/DndMCP/.venv/bin/python", "/Users/torkegeberg/Documents/DndMCP/server.py"],
-      "enabled": true
+      "enabled": false
     }
+  },
+  "tools": {
+    "notion_notion-create-attachment": false
   },
   "permission": {
     "bash": {
